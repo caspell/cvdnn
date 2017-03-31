@@ -7,7 +7,7 @@ import time
 #cap = cv2.VideoCapture('rtsp://192.168.1.40:8554/')
 
 cap = cv2.VideoCapture('/home/mhkim/data/video/sampho2.mp4')
-
+# cap = cv2.VideoCapture('http://192.168.1.40:8080/?action=stream')
 
 # params for ShiTomasi corner detection
 feature_params = dict( maxCorners = 100,
