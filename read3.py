@@ -120,7 +120,7 @@ def read ():
 
     try:
 
-        query = "select * from frames where partition_key = 1 order by frame_num ASC limit 100 "
+        query = "select * from frames where partition_key = 1 order by frame_num ASC limit 10 "
 
         ff = session.execute_async(query)
 
@@ -138,11 +138,13 @@ def read ():
             # frame = np.fromstring(data, dtype='float32')
             frame = frame.reshape(480,1040,2)
 
-            lines = get_draw_flow_lines(frame)
+            # lines = get_draw_flow_lines(frame)
+            #
+            # value = get_avg_travel_distance(lines)
+            #
+            # values.append(value)
 
-            value = get_avg_travel_distance(lines)
-
-            values.append(value)
+            # print (frame.astype('float32'))
 
             # max1 = np.max(frame[:, :, 0])
             # max2 = np.max(frame[:, :, 1])
@@ -179,6 +181,8 @@ def test () :
     bytes = np.random.random([480, 1040, 2])
 
     print (len(bytearray(bytes.astype(np.uint8))))
+
+    print (len(bytearray(bytes.astype(np.float16))))
 
     print (len(bytearray(bytes.astype(np.float32))))
 

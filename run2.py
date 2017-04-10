@@ -1,7 +1,6 @@
 import numpy as np
 import cv2
-import time
-import os
+import time , os , math
 
 # cap = cv2.VideoCapture('/data/share/nfs/40/video.h264')
 #cap = cv2.VideoCapture('/home/mhkim/data/video/MVI_0043.AVI')
@@ -9,11 +8,11 @@ import os
 # cap = cv2.VideoCapture('http://192.168.1.40:8080/?action=stream')
 # cap = cv2.VideoCapture('/home/mhkim/data/video/sampho2.mp4')
 
-filename = 'video/sampho2.mp4'
+# filename = 'video/sampho2.mp4'
+# os.path.join('/home/mhkim/data',filename)
+filename = '/data/samba/anonymous/sampyo_6_hour.mp4'
 
-cap = cv2.VideoCapture(os.path.join('/home/mhkim/data',filename))
-
-
+cap = cv2.VideoCapture(filename)
 
 # params for ShiTomasi corner detection
 feature_params = dict( maxCorners = 100,
@@ -82,7 +81,7 @@ imgCrop = (lambda f : f[35:] )
 kernel = np.array([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]])
 
 def imageSharpening (frame) :
-    frame = imageResize(frame, 0.6)
+    frame = imageResize(frame, 1.0)
     return cv2.filter2D(frame, -1, kernel)
 
 old_frame = imgCrop(old_frame)
@@ -98,13 +97,20 @@ p0 = cv2.goodFeaturesToTrack(old_gray, mask = None, **feature_params)
 # Create a mask image for drawing purposes
 mask = np.zeros_like(old_frame)
 
+frameNum = 0
+
 while(1):
 
     k = cv2.waitKey(30) & 0xff
     if k == 27:
         break
 
-    ret,frame = cap.read()
+    ret , frame = cap.read()
+
+    if frameNum < 45000 :
+        frameNum = frameNum + 1
+        print ( frameNum )
+        continue
 
     frame = imgCrop(frame)
 
@@ -112,17 +118,32 @@ while(1):
 
     frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-
     # optical flow - test 1
     # old_gray , p0 = draw_flow1(old_gray, frame_gray, p0, mask)
 
 
     # optical flow - test 2
-    # flow = cv2.calcOpticalFlowFarneback(old_gray, frame_gray, None, 0.5, 13, 15, 3, 5, 1.2, 0)
+    flow = cv2.calcOpticalFlowFarneback(old_gray, frame_gray, None, 0.5, 13, 15, 3, 5, 1.2, 0)
 
-    # cv2.imshow('flow', draw_flow2(frame_gray, flow))
+    cv2.imshow('flow', draw_flow2(frame_gray, flow))
+
+    time = frameNum / 30
+
+    time = math.fmod(time, 300)
+
+    line_num = '%s' % (frameNum // 9000)
+
+    txt1 = '%ss' % int(time)
+
+    txt2 = '%s - %s' % ( line_num , frameNum )
+
+    cv2.putText(frame_gray, txt1, (10, 400), cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 255, 255), 2, cv2.LINE_AA)
+
+    cv2.putText(frame_gray, txt2, (10, 500), cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 255, 255), 2, cv2.LINE_AA)
+
     cv2.imshow('flow', frame_gray)
 
+    frameNum = frameNum + 1
 
     # time.sleep(0.2)
 cv2.destroyAllWindows()

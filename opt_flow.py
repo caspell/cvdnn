@@ -123,14 +123,21 @@ def get_avg_travel_distance ( lines , step=1):
 
     return [avg , max, min , avg_diff]
 
+
+def get_frame (frame, crop_height=None) :
+
+    _frame = image_precondition(frame, crop_height=crop_height)
+
+    return cv2.cvtColor(_frame, cv2.COLOR_BGR2GRAY)
+
 def analysis (video_path , data_path) :
     import sys
     #print(__doc__)
 
 
-    cluster = Cluster(['192.168.1.50'])
-
-    session = cluster.connect('sampyo_data')
+    # cluster = Cluster(['192.168.1.50'])
+    #
+    # session = cluster.connect('sampyo_data')
 
     FLOW_STEP = 16
 
@@ -148,9 +155,8 @@ def analysis (video_path , data_path) :
 
     height = h - 60
 
-    prev = image_precondition(prev, crop_height=height)
+    prevgray = get_frame(prev, crop_height=height)
 
-    prevgray = cv2.cvtColor(prev, cv2.COLOR_BGR2GRAY)
     show_hsv = False
     show_lines = False
     save_data = True
@@ -162,6 +168,21 @@ def analysis (video_path , data_path) :
 
     to_strings = (lambda x: '%s' % format(x))
 
+
+    # cursor = session.execute_async('select max(frame_num) as frame_num from frames')
+
+    # rows = cursor.result()
+    #
+    # last_frame_num = 0
+    #
+    # for r in rows:
+    #     last_frame_num = r.frame_num
+    #     # print ( last_frame_num)
+    #     break
+
+        # cluster.shutdown()
+        # return
+
     try :
         while True:
 
@@ -172,24 +193,27 @@ def analysis (video_path , data_path) :
             if not ret :
                 break
 
-            frame = image_precondition(frame, crop_height=height)
+            # if frameCount < last_frame_num:
+            #     if frameCount == last_frame_num - 1:
+            #         prevgray = get_frame(frame, crop_height=height)
+            #
+            #     frameCount = frameCount + 1
+            #     continue
 
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            gray = get_frame(frame, crop_height=height)
 
             flow = cv2.calcOpticalFlowFarneback(prevgray, gray, None, 0.5, 3, 15, 3, 5, 1.2, 0)
-            #buildOpticalFlowPyramid
-
-            # np.save(fd, flow)
 
             prevgray = gray
+
 
             # font = cv2.FONT_HERSHEY_SIMPLEX
             # cv2.putText(gray, 'OpenCV', (10, 500), font, 4, (255, 255, 255), 2, cv2.LINE_AA)
 
-            # cv2.imshow('flow', draw_flow(gray, flow, FLOW_STEP))
+            cv2.imshow('flow', draw_flow(gray, flow, FLOW_STEP))
 
-            # if show_hsv:
-            #     cv2.imshow('flow HSV', draw_hsv(flow))
+            if show_hsv:
+                cv2.imshow('flow HSV', draw_hsv(flow))
 
             if show_lines :
                 # cv2.imshow('flow flow lines', draw_flow_lines(flow, FLOW_STEP))
@@ -211,10 +235,9 @@ def analysis (video_path , data_path) :
 
                 #print ( insert_data)
 
-                session.execute("""
-                    insert into frames ( partition_key , frame_num , data , dtype , shape )
-                    values ( 1, %(frameCount)s , %(data)s , %(dtype)s , %(shape)s ) """
-                                , insert_data)
+                # session.execute(""" insert into frames ( partition_key , frame_num , data , dtype , shape )
+                #                     values ( 1, %(frameCount)s , %(data)s , %(dtype)s , %(shape)s ) """
+                #                     , insert_data, 30000)
 
             # cv2.putText()
 
@@ -240,7 +263,8 @@ def analysis (video_path , data_path) :
     finally :
         print ('finished~')
         cv2.destroyAllWindows()
-        cluster.shutdown()
+        # cluster.shutdown()
+        cam.release()
 
     # with open(data_path, 'w') as fd :
     #     np.save(fd, values)
