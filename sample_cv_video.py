@@ -12,7 +12,7 @@ the VideoCapture interface (see Chess class).
 falling back to procedural video in case of error.
 
 Usage:
-    video.py [--shotdir <shot path>] [source0] [source1] ...'
+    sample_cv_video.py [--shotdir <shot path>] [source0] [source1] ...'
 
     sourceN is an
      - integer number for camera capture
@@ -41,7 +41,7 @@ import cv2
 from time import clock
 
 # local modules
-from tst_scene_render import TestSceneRender
+from sample_cv_tst_scene_render import TestSceneRender
 import common
 
 class VideoSynthBase(object):

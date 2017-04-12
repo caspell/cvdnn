@@ -1,8 +1,7 @@
 import functools
-from utils import common
-import numpy as np
+import sets
 import tensorflow as tf
-from collections import namedtuple
+
 
 def lazy_property(function):
     attribute = '_' + function.__name__
@@ -35,7 +34,7 @@ class SequenceLabelling:
         network = tf.nn.rnn_cell.DropoutWrapper(
             network, output_keep_prob=self.dropout)
         network = tf.nn.rnn_cell.MultiRNNCell([network] * self._num_layers)
-        output, _ = tf.nn.dynamic_rnn(network, self.data, dtype=tf.float32)
+        output, _ = tf.nn.dynamic_rnn(network, data, dtype=tf.float32)
         # Softmax layer.
         max_length = int(self.target.get_shape()[1])
         num_classes = int(self.target.get_shape()[2])
@@ -73,83 +72,29 @@ class SequenceLabelling:
 
 
 def read_dataset():
-
-    datas = common.load_avg_data()
-
-    _data = common._data
-
-    Lines = namedtuple('Lines', 'input_begin input_end output_begin output_end')
-
-    Data = namedtuple('Data', 'data target sample')
-
-    plot_count = len(_data)
-
-    _data = np.array(_data)
-
-    max_range = np.max([ e - s for s , e in _data[:,0,:]])
-
-    r , _ , _ = np.shape(_data)
-
-    _values = np.zeros((r, max_range * 30, 2))
-    _labels = np.zeros((r, 1, 1))
-
-    for i in range(plot_count) :
-
-        (_a, _b), (_c, _d) = np.array(_data[i]) * 30
-
-        l = Lines(_a, _b , _c, _d)
-
-        # print ( l)
-
-        # value = data[l.input_begin:l.output_end]
-
-        value = datas[l.input_begin:l.input_end, 0::3]
-
-        _values[i][:l.input_end - l.input_begin] = value
-
-        _labels[i] = np.array([1])
-
-    sample = (lambda x : Data(_values[:x] , _labels[:x] , sample))
-
-    train = Data(_values , _labels , sample)
-
-    test = Data(_values[:5] , _labels[:5], sample)
-
+    dataset = sets.Ocr()
+    dataset = sets.OneHot(dataset.target, depth=2)(dataset, columns=['target'])
+    dataset['data'] = dataset.data.reshape(
+        dataset.data.shape[:-2] + (-1,)).astype(float)
+    train, test = sets.Split(0.66)(dataset)
     return train, test
 
-def train_data (train, test) :
 
+if __name__ == '__main__':
+    train, test = read_dataset()
     _, length, image_size = train.data.shape
-
     num_classes = train.target.shape[2]
-
-
-    data = tf.placeholder(tf.float32, [None, length, image_size], name='data')
-
-    target = tf.placeholder(tf.float32, [None, length, num_classes], name='target')
-
-    dropout = tf.placeholder(tf.float32, name='dropout')
-
+    data = tf.placeholder(tf.float32, [None, length, image_size])
+    target = tf.placeholder(tf.float32, [None, length, num_classes])
+    dropout = tf.placeholder(tf.float32)
     model = SequenceLabelling(data, target, dropout)
     sess = tf.Session()
-
-    sess.run(tf.global_variables_initializer())
-
+    sess.run(tf.initialize_all_variables())
     for epoch in range(10):
-        for _ in range(2):
+        for _ in range(100):
             batch = train.sample(10)
             sess.run(model.optimize, {
                 data: batch.data, target: batch.target, dropout: 0.5})
-
         error = sess.run(model.error, {
             data: test.data, target: test.target, dropout: 1})
-
         print('Epoch {:2d} error {:3.1f}%'.format(epoch + 1, 100 * error))
-
-if __name__ == '__main__':
-
-    train, test = read_dataset()
-
-    # print (train)
-
-    train_data(train, test)
